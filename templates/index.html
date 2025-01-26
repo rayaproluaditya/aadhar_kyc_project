@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhaar KYC Verification</title>
+</head>
+<body>
+    <h2>Aadhaar KYC Verification</h2>
+
+    <form id="aadhaarForm" enctype="multipart/form-data">
+        <label for="aadhaar">Enter Aadhaar Number:</label>
+        <input type="text" id="aadhaar" name="aadhaar" required>
+        <br><br>
+
+        <label for="aadhaarPhoto">Upload Aadhaar Photo:</label>
+        <input type="file" id="aadhaarPhoto" accept="image/*" required>
+        <br><br>
+
+        <video id="video" width="320" height="240" autoplay></video>
+        <br>
+        <button type="button" onclick="captureImage()">Capture Live Photo</button>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <img id="capturedImage" width="320" height="240" />
+
+        <br><br>
+        <button type="button" onclick="submitForm()">Submit for Verification</button>
+    </form>
+
+    <p id="result"></p>
+
+    <script>
+        // Start camera
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            document.getElementById('video').srcObject = stream;
+        });
+
+        function captureImage() {
+            let video = document.getElementById('video');
+            let canvas = document.getElementById('canvas');
+            let context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            let imgData = canvas.toDataURL('image/png');
+            document.getElementById('capturedImage').src = imgData;
+        }
+
+        function submitForm() {
+            let aadhaarNumber = document.getElementById('aadhaar').value;
+            let aadhaarPhoto = document.getElementById('aadhaarPhoto').files[0];
+            let imgData = document.getElementById('canvas').toDataURL('image/png');
+
+            if (!aadhaarNumber || !aadhaarPhoto || !imgData) {
+                document.getElementById('result').innerText = "Please fill all fields!";
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append('aadhaar', aadhaarNumber);
+            formData.append('aadhaarPhoto', aadhaarPhoto);
+            formData.append('livePhoto', imgData);
+
+            fetch('/verify', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').innerText = data.message;
+                });
+        }
+    </script>
+</body>
+</html>
